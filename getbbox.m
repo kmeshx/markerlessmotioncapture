@@ -32,8 +32,10 @@ while ~isDone(videoSource)
    %  filteredForeground = medfilt2(filteredForeground);
      %fun = @(x) median(x(:));
      filteredForeground = edge(bwareaopen(imbinarize(uint32(medfilt2(wiener2(wiener2(wiener2(wiener2(wiener2(filteredForeground, [2 2])))))))), 5), 'approxcanny');
+     %remove edge() from above line to get the complete cheetah silhouette
      out = shapeInserter(filteredForeground, uint32(bbox));
      videoPlayer(out); 
 end
+
 release(videoPlayer);
 release(videoSource);

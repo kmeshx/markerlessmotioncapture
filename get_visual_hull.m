@@ -1,3 +1,5 @@
+%CODE ADAPTED FROM keith2000 : https://github.com/keith2000/VisualHullMesh
+
 %VisualHullMeshDemo4b
 %close all
 %clear all

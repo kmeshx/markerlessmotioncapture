@@ -1,11 +1,29 @@
-function [message] = combine_videos(vidnames_array)
+ function [message] = combine_videos(vidlog_array) %dims = 12 x 1
     %number of rows in array is number of videos
+    array_of_intrinsics = [[1232, 969.6038, 547.1182];
+                           [1261, 954.1422, 553.2415];
+                           [1222, 962.1841, 532.6923];
+                           [1239, 973.1467, 537.6450];
+                           [1262, 970.6796, 534.6271];
+                           [1223, 959.4721, 545.7360]];
+                           %efl, hor pp, ver pp
+
+    %MAKE ARRAY OF EXTRINSICS
+
+    
+    [xs, ys] = find(vidlog_array); %xs, ys should be nx1; ys all 1
+    vidnames_array = xs; %n rows, one col
     
     n = size(vidnames_array, 1);
     sources_arr = [];
-    
+    this_int = [];
+    this_ext = [];
     for i = 1:n
-        videoSource = vision.VideoFileReader(vidnames_arr(i:i, 1:1),...
+        v = vidnames_arr(i:i, 1:1);
+        cur_name = int2str(v);
+        this_int = [this_int; array_of_intrinsics(v:v, 1:1)];
+        this_ext = [this_ext; array_of_extrinsics(v:v, 1:1)];
+        videoSource = vision.VideoFileReader(strcat('CAM', strcat(cur_name, '.mp4')),...
         'ImageColorSpace','Intensity','VideoOutputDataType','uint8');
     
         sources_arr = [sources_arr; videoSource];
@@ -23,7 +41,7 @@ function [message] = combine_videos(vidnames_array)
            'BoundingBoxOutputPort', true, ...
            'MinimumBlobAreaSource', 'Property', 'MinimumBlobArea', 250);
 
-    shapeInserter = vision.ShapeInserter('BorderColor','White');
+    %shapeInserter = vision.ShapeInserter('BorderColor','White');
 
     videoPlayer = vision.VideoPlayer();
 
@@ -38,15 +56,18 @@ function [message] = combine_videos(vidnames_array)
             cur_source = sources_arr(j:j, 1:1);
             cur_frame = step(cur_source);
             cur_fgMask = detector(cur_frame);
-            cur_bbox = cheecords(blob(fgMask));
+            cur_bbox = cheecords(blob(cur_fgMask));
+            
             se = strel('square', 3);
-            filteredForeground = imopen(fgMask, se);
-            seer = strel('rectangle',[2 2]);
+            filteredForeground = imopen(cur_fgMask, se);
+            %seer = strel('rectangle',[2 2]);
             filteredForeground = bwareaopen(imbinarize(uint32(medfilt2(wiener2(wiener2(wiener2(wiener2(wiener2(filteredForeground, [2 2])))))))), 5);%, 'approxcanny');
-            forvh = [forvh; [filteredForeground, cur_bbox];
+            filteredForeground = scale_same(filteredForeground, cur_bbox, [500 500]);
+            forvh = [forvh; filteredForeground];
 
          end
-         cur_vh = get_visual_hull(forvh);
+         
+         cur_vh = get_visual_hull(forvh, this_int, this_ext);
          cur_thinned = thinner_three_d(cur_vh);
          %cur_skelstruct = get_skel(cur_thinned);
          projected = get_projection(cur_skelstruct);
@@ -85,4 +106,5 @@ function [message] = combine_videos(vidnames_array)
     end
     release(videoPlayer);
     release(videoSource);
+    message = 'DONE';
 end

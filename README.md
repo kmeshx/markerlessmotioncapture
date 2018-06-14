@@ -1,3 +1,3 @@
 # markerlessmotioncapture
 
-getbbox gives boundary of cheetah in a video
+get_cheetah_one is option one to get boundary of cheetah in a video

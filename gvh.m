@@ -1,3 +1,4 @@
+%adapted from Keith Forbes: https://github.com/keith2000/VisualHullMesh
 %modified version of VisualHullMeshDemo files
 function [sv] = gvh(img_arr, int_arr, ext_arr)
   

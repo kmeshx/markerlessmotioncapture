@@ -1,0 +1,4 @@
+function [skel] = redistribute(init, j, pts, thresh)
+
+    init.sgema
+end

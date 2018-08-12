@@ -1,0 +1,216 @@
+function [error] = cost_func(x0, pts, skel)
+    disp('costfunc calledddd');
+    %disp('pts'); disp(pts);
+    %eps is map
+   % mm = skel.segmap;
+   % curmap = mm('headneck');
+    %disp('intocostfunc'); 
+    %disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+    
+    psize = size(pts, 1);
+    %tmpskl = resize_all_segments(skel, 0.6);
+    
+    
+    error = 0;
+    O = skel.segorder;
+    m = skel.numsegs; %18
+    %M = skel.segmap;
+    ra = skel.rectarray;
+    %E = skel.segmap; %initialize for no reason like this
+    EE = inited_skel(skel);
+    E = EE.segmap;
+    %E is estimates map
+    %ecur = eps('headneck');
+   % init_vector = [(ecur('curfx') - ecur('curbx')); (ecur('curfy') - ecur('curby'))];
+   % ee = E('headneck');
+   % ee('curfx') = ecur('curfx');
+   % ee('curfy') = ecur('curfy');
+   % ee('curbx') = ecur('curbx');
+   % ee('curby') = ecur('curby');
+   % mm = skel.segmap;
+   % curmap = mm('headneck');
+   % disp('aftereskel'); 
+   % disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+   %disp('x0'); disp(x0);
+    %da = [];
+   % E('headneck') = ee;
+   
+    %disp('b4 first loop');
+    for j = 1:m
+       % disp(O);
+        curseg = O{j};
+        curmap = E(curseg);
+        
+        prevseg = curmap('prevname');
+      %  disp(curseg); disp(prevseg);
+        %disp('cur'); disp(curseg); disp('prev'); disp(prevseg);
+        if ~strcmp(prevseg, '')
+            prevmap = E(prevseg);
+            %disp('inif'); disp(curseg); disp(prevseg);
+            %disp(size(x0)); disp(j);
+            curtheta = x0(j-1);
+            R = [[cosd(curtheta), -sind(curtheta)]; [sind(curtheta), cosd(curtheta)]];
+            init_vector = [(prevmap('curfx') - prevmap('curbx')); (prevmap('curfy') - prevmap('curby'))];
+            C = - curmap('len')*((R*init_vector)/get_norm2(R*init_vector)) + [prevmap('curbx'); prevmap('curby')];
+            
+            
+            assert(isnan(curmap('curbx')));
+            curmap('curbx') = C(1);
+            
+            assert(isnan(curmap('curby')));
+            curmap('curby') = C(2);
+            
+            assert(isnan(curmap('curfx')));
+            curmap('curfx') = prevmap('curbx');
+            
+            assert(isnan(curmap('curfy')));
+            curmap('curfy') = prevmap('curby');
+            
+            %ra(j, :) = update_rect([curmap('curfx'), curmap('curfy')], [curmap('curbx'), curmap('curby')], ra(j, :));
+            %skel.rectarray = ra;
+            %v2 = [curmap('curfx') - curmap('curbx'), curmap('curfy') - curmap('curby')];
+            %v1 = [prevmap('curfx') - prevmap('curbx'), prevmap('curfy') - prevmap('curby')];
+            %x1 = v1(1); x2 = v2(1); y1 = v1(2); y2 = v2(2);
+            %daa = atan2d(x1*y2-y1*x2,x1*x2+y1*y2);
+            %da = [da; daa];
+            %disp('curmap');
+            %disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+            E(curseg) = curmap;
+          %  mm = skel.segmap;
+          %  hmap = mm('headneck');
+          %  disp('loopskel'); 
+          %  disp([hmap('curfx'), hmap('curfy'), hmap('curbx'), hmap('curby')]);
+    
+        end
+       % disp('curmap');
+      %  disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+            
+        
+    end
+    %disp('da'); disp(da);
+    
+    %disp('after first loop');
+    skel.segmap = E;
+    
+    %{
+    for i = 1:psize
+        cp = pts(i, :);
+        
+        seg = closest_seg_new(cp, skel);
+        %seg = closest_seg_new(cp, init);
+        curseg = O{seg};
+        curmap = E(curseg);
+        
+        pp(1) = (curmap('curfy') - curmap('curby'))/(curmap('curfx') - curmap('curbx'));
+        pp(2) = curmap('curfy') - curmap('curfx')*pp(1);
+        fcol = find_closest_on_line(cp, pp);
+        d = get_norm2(fcol - cp);
+        d1 = get_norm2(fcol - [curmap('curfx'), curmap('curfy')]);
+        d2 = get_norm2(fcol - [curmap('curbx'), curmap('curby')]);
+        if d < min(d1, d2)
+            d = min(d1, d2);
+        end
+          
+        error = error + d;
+        %skel.segdivs{seg} = [skel.segdivs{seg}; cp];
+        
+    end
+    %}
+   % disp('b4 sec loop');
+    point_penalty = 20
+   
+    for i = 1:psize
+        %disp('newpt');
+        cp = pts(i, :);
+        
+        sega = closest_seg_rect(cp, skel); %CLOSEST SEG RECT USES THE LIMB ENDPOINTS AND RECTANGLE WIDTH TO
+        %GET RECTANGLE ENDPOINTS AND FIND OVERLAP VIA INPOLYGON
+        ss = size(sega, 1);
+        
+        if ss == 0
+            error = error - point_penalty;
+            
+        else
+            
+        
+        
+            for ii = 1:ss
+                %disp('segapt'); disp(ii);
+
+                seg = sega(ii);
+                curseg = O{seg};
+                curmap = E(curseg);
+
+               % disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+
+
+                pp(1) = (curmap('curfy') - curmap('curby'))/(curmap('curfx') - curmap('curbx'));
+                pp(2) = curmap('curfy') - curmap('curfx')*pp(1);
+                if(isnan(pp(1)) || isnan(pp(2)) || curmap('curfx') == curmap('curbx'))
+                    fcol = [curmap('curfx'), cp(2)];
+                else
+                    fcol = find_closest_on_line(cp, pp);
+                end
+                d = get_norm2(fcol - cp);
+                d1 = get_norm2(fcol - [curmap('curfx'), curmap('curfy')]);
+                d2 = get_norm2(fcol - [curmap('curbx'), curmap('curby')]);
+
+                if d < min(d1, d2)
+                    d = min(d1, d2);
+                end
+               % disp([d, d1, d2]);
+               % disp('err'); 
+                error = error + d;
+               % disp(error); 
+            end
+            
+        end
+       
+        
+    end
+    
+   % disp('after sec loop');
+    
+    
+    
+    
+    %show_oskel(x0, pts, skel);
+   % curmap = mm('headneck');
+   % disp('afterloopskel'); 
+   % disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+    
+    %{
+    for j = 2:m
+        curseg = O{j};
+        curmap = E(curseg);
+        
+        curpts = skel.segdivs{j};
+        
+        nn = size(curpts, 1);
+        for i = 1:nn
+            cp = curpts(i, :);
+            pp(1) = (curmap('curfy') - curmap('curby'))/(curmap('curfx') - curmap('curbx'));
+            pp(2) = curmap('curfy') - curmap('curfx')*pp(1);
+            fcol = find_closest_on_line(cp, pp);
+            d = get_norm2(fcol - cp);
+            d1 = get_norm2(fcol - [curmap('curfx'), curmap('curfy')]);
+            d2 = get_norm2(fcol - [curmap('curbx'), curmap('curby')]);
+            if d < min(d1, d2)
+                d = min(d1, d2);
+            end
+           % disp('err');
+           % disp(error);
+            error = error + d;
+        end
+        
+    end
+    %}
+   % mm = skel.segmap;
+   % curmap = mm('headneck');
+   % disp('fromcostfunc'); 
+   % disp([curmap('curfx'), curmap('curfy'), curmap('curbx'), curmap('curby')]);
+    
+    
+    show_oskel(x0, pts, skel);
+    
+end

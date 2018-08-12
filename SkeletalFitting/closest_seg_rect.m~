@@ -1,0 +1,58 @@
+function [seg] = closest_seg_rect(pt, skel)
+   % disp('inclosegr');
+    ra = skel.rectarray;
+    n = skel.numsegs;
+    O = skel.segorder;
+    M = skel.segmap;
+    
+    seg = [];
+    
+    %{
+    for i = 1:n
+        curra = ra(i, :);
+        p(1:1, :) = curra(1:1, 1:2);
+        p(2:2, :) = curra(1:1, 3:4);
+        p(3:3, :) = curra(1:1, 5:6);
+        p(4:4, :) = curra(1:1, 7:8);
+        xv = p(:, 1); yv = p(:, 2);
+        xq = pt(1); yq = pt(2);
+        in = inpolygon(xq,yq,xv,yv);
+        if in
+            seg = [seg; i];
+        end
+    end
+    
+    %disp('outclosegr');
+    
+    %}
+    
+    for i = 1:n
+        curlen = ra(i);
+        curseg = O{i};
+        curmap = M(curseg);
+        slope_vector = [(curmap('curfx') - curmap('curbx')), (curmap('curfy') - curmap('curby'))];
+        perp_vec = [-slope_vector(2), slope_vector(1)];
+        perp_unit = perp_vec/(get_norm2(perp_vec));
+        dir = perp_unit*curlen;
+        upper_left = [curmap('curfx'), curmap('curfy')] + dir;
+        _left = [curmap('curfx'), curmap('curfy')] + dir;
+        upper_left = [curmap('curfx'), curmap('curfy')] + dir;
+        upper_left = [curmap('curfx'), curmap('curfy')] + dir;
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
